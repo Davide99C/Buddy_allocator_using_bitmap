@@ -3,25 +3,31 @@
 #include <math.h> // for floor and log2
 #include "buddy_allocator.h"
 
-// these are trivial helpers to support you in case you want
-// to do a bitmap implementation
-int levelIdx(size_t idx){
-  return (int)floor(log2(idx));
-};
+// Uso la convenzione lvl 0 ha radice di indice 0
 
-int buddyIdx(int idx){
-  if (idx&0x1){
-    return idx-1;
-  }
-  return idx+1;
+int levelIdx(size_t idx){
+  return (int)floor(log2(idx+1)); //floor arrotonda al numero più vicino
+}
+
+int buddyIdx(int idx){ //fratello
+  if (idx == 0)
+    return 0; //0 non ha fatelli
+  else if (idx & 0x1)
+    return idx + 1; //il buddy di 1 è 2 e di 2 è 1
+  return idx - 1;
 }
 
 int parentIdx(int idx){
-  return idx/2;
+  return (idx-1)/2; //il padre di 1 è 0 di 3 è 1 etc
 }
 
+int firstIdx(int lvl){
+  return (1 << lvl) - 1; //il primo indice al livello 0 è 0, all'1 è 1 etc
+}
+
+//ritorna l'offset dal primo indice del livello a cui si trova
 int startIdx(int idx){
-  return (idx-(1<<levelIdx(idx)));
+  return (idx-(firstIdx(levelIdx(idx)))); // se idx=36 -> livello:5 e first(5)=31 -> offset: 36-31=5
 }
 
 // stampo a schermo l'albero della bitmap
@@ -52,31 +58,45 @@ void BuddyAllocator_init(BuddyAllocator* alloc,
                          int min_bucket_size) {
 
   // we need room also for level 0
+  assert("Min bucket troppo piccolo" && min_bucket_size >= 8); //troppo piccolo altrimenti
+   
+  assert ("Numero di livelli maggiore del massimo possibile!" && num_levels<MAX_LEVELS);
+  
+  //generazione numero di bit per la bit_map, ogni bit è un buddy di minbucket size
+  int num_bits = (1 << (num_levels + 1)) - 1 ; // maximum number of allocations
+  
+  assert ("Memoria per la bitmap non sufficente!" && bitmap_buf_size>=BitMap_getBytes(num_bits));
+  
+  //controllo in più non presente nel codice originale, nel caso non si usi una potenza di 2 precisa si riuscirà ad usare meno memoria della disponibile
+  if (levelIdx(alloc_buf_size) != log2(alloc_buf_size)){
+    printf("****ATTENZIONE IL BUFFER NON È UNA POTENZA DI DUE PRECISA E IL BUDDY NON LO USERA' A PIENO,\n");
+    printf("RIUSCIRAI AD UTILIZZARE SOLAMENTE %d BYTES DI %d FORNITI****\n", min_bucket_size << num_levels, alloc_buf_size);
+    alloc_buf_size = min_bucket_size << num_levels; //la dimensione massima effettiva che può gestire
+  }
+
+  // we need room also for level 0
   alloc->num_levels=num_levels;
   alloc->buffer = alloc_buf;
   alloc->buffer_size = alloc_buf_size;
   alloc->min_bucket_size=min_bucket_size;
-  
-  assert ("Numero di livelli maggiore del massimo possibile!" && num_levels<MAX_LEVELS);
-  //generazione numero di bit per la bit_map, ogni bit è un buddy di minbucket size
-  int num_bits = (1 << (num_levels + 1)) ; // maximum number of allocations
-  assert ("Memoria per la bitmap non sufficente!" && bitmap_buf_size>=BitMap_getBytes(num_bits));
+
 
   printf("BUDDY INITIALIZING\n");
-  printf("\tlevels: %d", num_levels);
-  printf("\tbucket size:%d\n", min_bucket_size);
-  printf("\tmanaged memory %d bytes\n", (1<<num_levels)*min_bucket_size);
+  printf("\tmanaged memory: %d bytes\n", alloc_buf_size); // (1<<num_levels)*min_bucket_size  (2^5)*8 = 256 bytes
+  printf("\tlevels: %d\n", num_levels);
+  printf("\tmin_bucket size: %d\n", min_bucket_size);
   printf("\tbits_bitmap: %d\n", num_bits);
-  printf("\tbitmap memory %d bytes usati di %d bytes forniti \n", BitMap_getBytes(num_bits), bitmap_buf_size);
+  printf("\tbitmap memory: %d bytes usati di %d bytes forniti \n", BitMap_getBytes(num_bits), bitmap_buf_size);
 
   BitMap_init(&alloc->bitmap, num_bits, bitmap_buf);
+  printf("Bitmap appena allocata:");
   Bitmap_print(&alloc->bitmap);
 };
 
 
 //allocates memory
 void* BuddyAllocator_malloc(BuddyAllocator* alloc, int size) {
-  //size += sizeof(int); //sizeof(int) byte vengono usati per salvare l'indice della bitmap
+  size += sizeof(int); //sizeof(int) byte vengono usati per salvare l'indice della bitmap
   
   if (alloc->buffer_size < size) {
     printf("\nIl blocco da allocare con size %d è più grande di tutta la memoria disponibile!\n", size);
@@ -99,7 +119,7 @@ void* BuddyAllocator_malloc(BuddyAllocator* alloc, int size) {
   //scandisco da firstidx del livello per trovare un blocco libero
   int free_idx = -1;
   int i; 
-  for (i= startIdx(lv_new_block); i < startIdx(lv_new_block + 1); i++){
+  for (i= firstIdx(lv_new_block); i < firstIdx(lv_new_block + 1); i++){
     if (!BitMap_bit(&alloc->bitmap, i)){ //se non è occupato
       free_idx = i;
       break;

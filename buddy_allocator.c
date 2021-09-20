@@ -13,19 +13,19 @@ int buddyIdx(int idx){ //fratello
   if (idx == 0)
     return 0; //0 non ha fatelli
   else if (idx & 0x1)
-    return idx + 1; //il buddy di 1 è 2 e di 2 è 1
+    return idx + 1; //il fratello di 1 è 2 e viceversa
   return idx - 1;
 }
 
 int parentIdx(int idx){
-  return (idx-1)/2; //il padre di 1 è 0 di 3 è 1 etc
+  return (idx-1)/2; //il padre di 1 è 0 di 3 è 1 e così via
 }
 
 int firstIdx(int lvl){
-  return (1 << lvl) - 1; //il primo indice al livello 0 è 0, all'1 è 1 etc
-}
+  return (1 << lvl) - 1; //il primo indice del livello 0 è 0, del livello 1 è 1, del livello 2 è 3 e cosi via
+} // return (2^lvl)-1;
 
-//ritorna l'offset dal primo indice del livello a cui si trova
+//ritorna l'offset dal primo indice del livello a cui si trova (quanto dista dal primo elemento del livello)
 int startIdx(int idx){
   return (idx-(firstIdx(levelIdx(idx)))); // se idx=36 -> livello:5 e first(5)=31 -> offset: 36-31=5
 }
@@ -35,13 +35,13 @@ void Bitmap_print(BitMap *bit_map){
   int remain_to_print = 0;
   int lvl = -1;
   int tot_lvls = levelIdx(bit_map->num_bits) - 1;
-  tot_lvls = (tot_lvls>6)? 6 : tot_lvls; //per ragioni di visualizzazione sopra i 6 livelli si occupa troppo spazio, dipende dallo schermo
+  if (tot_lvls>6) tot_lvls = 6; //evito di stampare più di 6 livelli per visualizzare l'albero al meglio 
   for (int i = 0; i < bit_map->num_bits; i++){
     if (remain_to_print == 0){ 
       if(lvl==tot_lvls) break;
-      printf("\nLivello %d (inizia con %d):\t", ++lvl, i);
+      printf("\nLivello %d (bit iniziale %d):\t", ++lvl, i);
       for (int j = 0; j < (1 << tot_lvls) - (1 << lvl); j++) printf(" "); //print spazi per formattazione
-      remain_to_print = 1 << lvl;
+      remain_to_print = 1 << lvl; // (2^lvl)
     }
     printf("%d ", BitMap_bit(bit_map, i));
     remain_to_print--;
@@ -148,7 +148,7 @@ void BuddyAllocator_free(BuddyAllocator *alloc, void *mem){
   printf("\nFreeing %p\n", mem);
 
   assert("Non posso fare il free di NULL" && mem); //deve essere diverso da null
-  // we retrieve the buddy from the system
+  // recuperiamo l'indice dal puntatore
   int *p = (int *)mem;
   int idx_to_free = p[-1];
 

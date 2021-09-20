@@ -52,6 +52,14 @@ int main(int argc, char** argv) {
   BuddyAllocator_free(&alloc, p5);
   BuddyAllocator_free(&alloc, p4);
 
+  printf("\n<---- TEST FALLIMENTO ---->\n");
+
+  p4=BuddyAllocator_malloc(&alloc, 10000000); // fallisce perchè blocco di dimensioni maggiori alla memoria disponibile
+  p1=BuddyAllocator_malloc(&alloc, 200); // "alloco tutta la bitmap"
+  p3=BuddyAllocator_malloc(&alloc, 8); // fallisce perchè non c'è più memoria disponibile
+  BuddyAllocator_free(&alloc, p1);
+  // BuddyAllocator_free(&alloc, p1); // double free 
+
   printf("\n<---- FINE TEST ---->\n");
 
 }

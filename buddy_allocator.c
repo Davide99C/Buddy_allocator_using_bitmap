@@ -32,24 +32,24 @@ int startIdx(int idx){
 
 // stampo a schermo l'albero della bitmap
 void Bitmap_print(BitMap *bit_map){
-  int remain_to_print = 0;
+  int da_printare = 0;
   int lvl = -1;
   int tot_lvls = levelIdx(bit_map->num_bits) - 1;
   if (tot_lvls>6) tot_lvls = 6; //evito di stampare più di 6 livelli per visualizzare l'albero al meglio 
   for (int i = 0; i < bit_map->num_bits; i++){
-    if (remain_to_print == 0){ 
+    if (da_printare == 0){ 
       if(lvl==tot_lvls) break;
       printf("\nLivello %d (bit iniziale %d):\t", ++lvl, i);
       for (int j = 0; j < (1 << tot_lvls) - (1 << lvl); j++) printf(" "); //print spazi per formattazione
-      remain_to_print = 1 << lvl; // (2^lvl)
+      da_printare = 1 << lvl; // (2^lvl)
     }
     printf("%d ", BitMap_bit(bit_map, i));
-    remain_to_print--;
+    da_printare--;
   }
   printf("\n");
 }
 
-void BuddyAllocator_init(BuddyAllocator* alloc,
+int BuddyAllocator_init(BuddyAllocator* alloc,
                          int num_levels,
                          char* alloc_buf, // buffer per l'allocator
                          int alloc_buf_size,
@@ -69,8 +69,12 @@ void BuddyAllocator_init(BuddyAllocator* alloc,
   
   //controllo in più non presente nel codice originale, nel caso non si usi una potenza di 2 precisa si riuscirà ad usare meno memoria della disponibile
   if (levelIdx(alloc_buf_size) != log2(alloc_buf_size)){
-    printf("****ATTENZIONE IL BUFFER NON È UNA POTENZA DI DUE PRECISA E IL BUDDY NON LO USERA' A PIENO,\n");
-    printf("RIUSCIRAI AD UTILIZZARE SOLAMENTE %d BYTES DI %d FORNITI****\n", min_bucket_size << num_levels, alloc_buf_size);
+    printf("ATTENZIONE POICHÈ IL BUFFER NON È UNA POTENZA DI DUE PRECISA \nRIUSCIRAI AD UTILIZZARE SOLO %d BYTES DI %d FORNITI.\n", 
+           min_bucket_size << num_levels, alloc_buf_size);
+    printf("PREMI 1 PER CONTINUARE, ALTRO PER TERMINARE\n");
+    int risp;
+    scanf("%d", &risp);
+    if (risp != 1) return 0; 
     alloc_buf_size = min_bucket_size << num_levels; //la dimensione massima effettiva che può gestire
   }
 
@@ -91,6 +95,7 @@ void BuddyAllocator_init(BuddyAllocator* alloc,
   BitMap_init(&alloc->bitmap, num_bits, bitmap_buf);
   printf("Bitmap appena allocata:");
   Bitmap_print(&alloc->bitmap);
+  return 1;
 };
 
 
@@ -127,7 +132,7 @@ void* BuddyAllocator_malloc(BuddyAllocator* alloc, int size) {
   }
   //se non lo trovo ritorno NULL
   if (free_idx < 0){
-    printf("Non c'è più memoria disponibile!\n");
+    printf("Impossibile allocare il blocco... non c'è più memoria disponibile!\n");
     return NULL;
   }
 

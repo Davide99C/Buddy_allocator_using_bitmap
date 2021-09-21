@@ -12,7 +12,7 @@ typedef struct  {
 } BuddyAllocator;
 
 // initializes the buddy allocator, and checks that the buffer is large enough
-void BuddyAllocator_init(BuddyAllocator* alloc,
+int BuddyAllocator_init(BuddyAllocator* alloc,
                          int num_levels,
                          char* alloc_buf, // buffer per l'allocator
                          int alloc_buf_size,

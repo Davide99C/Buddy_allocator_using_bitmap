@@ -58,8 +58,11 @@ int BuddyAllocator_init(BuddyAllocator* alloc,
                          int min_bucket_size) {
 
   // we need room also for level 0
-  assert("Min bucket troppo piccolo" && min_bucket_size >= 8); //troppo piccolo altrimenti
-   
+  //assert("Min bucket troppo piccolo" && min_bucket_size >= 8); //troppo piccolo altrimenti
+  if (min_bucket_size < 8) {
+    printf("Min bucket troppo piccolo\n");
+    return 0;
+  }
   assert ("Numero di livelli maggiore del massimo possibile!" && num_levels<MAX_LEVELS);
   
   //generazione numero di bit per la bit_map, ogni bit è un buddy di minbucket size
@@ -152,7 +155,11 @@ void* BuddyAllocator_malloc(BuddyAllocator* alloc, int size) {
 void BuddyAllocator_free(BuddyAllocator *alloc, void *mem){
   printf("\nFreeing %p\n", mem);
 
-  assert("Non posso fare il free di NULL" && mem); //deve essere diverso da null
+  //assert("Non posso fare il free di NULL" && mem); //deve essere diverso da null
+  if (!mem) {
+    printf("Non posso fare il free di NULL");
+    return;
+  }
   // recuperiamo l'indice dal puntatore
   int *p = (int *)mem;
   int idx_to_free = p[-1];

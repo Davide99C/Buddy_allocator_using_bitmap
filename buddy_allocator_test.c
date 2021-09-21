@@ -16,22 +16,29 @@ int main(int argc, char** argv) {
 
   int mybuf_size = BUFFER_SIZE;
   int mymin_bucket_size = MIN_BUCKET_SIZE;
+  int mylevels = BUDDY_LEVELS;
 
   if (argc > 1) {
     mybuf_size = atoi(argv[1]);
     printf("Hai scelto un buffer di dimensione %d\n", mybuf_size);
+    if (argc > 2) {
+      mylevels = atoi(argv[2]);
+      printf("Hai scelto un numero di livelli pari a %d\n", mylevels);
+    }
   }
   
   char buffer[mybuf_size]; 
 
   if (mybuf_size != BUFFER_SIZE) {
-    mymin_bucket_size = (mybuf_size >> (BUDDY_LEVELS));
+    mymin_bucket_size = (mybuf_size >> (mylevels));
   }
+
+  if (mylevels > 6) printf("Poichè il numero di livelli è troppo elevato, per ragioni di visualizzazione verrà stampato a schermo l'allocator fino al livello 6\n");
 
   // we initialize the allocator
   printf("init... \n");
   int init = BuddyAllocator_init(&alloc, 
-                      BUDDY_LEVELS,
+                      mylevels,
                       buffer,  // buffer per l'allocator
                       mybuf_size,
                       memory,  // buffer per la bitmap

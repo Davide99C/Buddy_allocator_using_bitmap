@@ -1,6 +1,6 @@
 # Buddy_allocator_using_bitmap
 # Progetto Sistemi Operativi 2020-2021
-# Davide Chiarabini 1844615
+# Davide Chiarabini
 # Buddy Allocator using bitmap
 # What
 Il progetto consiste nel realizzare un buddy allocator che riesce a gestire l’allocazione di
